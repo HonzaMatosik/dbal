@@ -7,8 +7,10 @@
 
 namespace NextrasTests\Dbal;
 
+use Nextras\Dbal\Platforms\IPlatform;
 use Nextras\Dbal\Result\Row;
 use Tester\Assert;
+use Tester\Environment;
 
 
 require_once __DIR__ . '/../../bootstrap.php';
@@ -18,6 +20,9 @@ class SqlPreprocessorIntegrationTest extends IntegrationTestCase
 {
 	public function testEmptyInsert()
 	{
+		if (!$this->connection->getPlatform()->isSupported(IPlatform::SUPPORT_INSERT_DEFAULT_KEYWORD)) {
+			Environment::skip('Insert default keyword is not supported.');
+		}
 		$this->connection->query('INSERT INTO table_with_defaults %values', []);
 		$this->connection->query('INSERT INTO table_with_defaults %values[]', [[]]);
 		$this->connection->query('INSERT INTO table_with_defaults %values[]', [[], []]);

@@ -22,10 +22,13 @@ $config = parse_ini_file(__DIR__ . '/../databases.ini', TRUE);
 foreach ($config as $name => $configDatabase) {
 	echo "[setup] Bootstraping '{$name}' structure.\n";
 
+	if (isset($configDatabase['filename'])) {
+		$configDatabase['filename'] = __DIR__ . '/../temp/' . $configDatabase['filename'];
+	}
 	$connection = new Connection($configDatabase);
 	$platform = $connection->getPlatform()->getName();
 	$resetFunction = require __DIR__ . "/../data/{$platform}-reset.php";
-	$resetFunction($connection, $configDatabase['database']);
+	$resetFunction($connection, $configDatabase);
 
 	FileImporter::executeFile($connection, __DIR__ . "/../data/{$platform}-init.sql");
 }

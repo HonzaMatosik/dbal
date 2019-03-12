@@ -39,6 +39,9 @@ class IntegrationTestCase extends TestCase
 			'sqlMode' => 'TRADITIONAL',
 			'searchPath' => ['public', 'second_schema'],
 		], Environment::loadData(), $params);
+		if (isset($options['filename'])) {
+			$options['filename'] = __DIR__ . '/../temp/' . $options['filename'];
+		}
 		return new Connection($options);
 	}
 

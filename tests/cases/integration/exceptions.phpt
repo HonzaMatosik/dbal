@@ -10,6 +10,7 @@ namespace NextrasTests\Dbal;
 use Nextras\Dbal\ConnectionException;
 use Nextras\Dbal\ForeignKeyConstraintViolationException;
 use Nextras\Dbal\NotNullConstraintViolationException;
+use Nextras\Dbal\Platforms\SqlitePlatform;
 use Nextras\Dbal\QueryException;
 use Nextras\Dbal\UniqueConstraintViolationException;
 use Tester\Assert;
@@ -22,15 +23,25 @@ class ExceptionsTest extends IntegrationTestCase
 
 	public function testConnection()
 	{
-		Assert::exception(function () {
-			$connection = $this->createConnection(['database' => 'unknown']);
-			$connection->connect();
-		}, ConnectionException::class);
+		if ($this->connection->getPlatform() instanceof SqlitePlatform) {
+			Assert::exception(function () {
+				$connection = $this->createConnection([
+					'filename' => 'whatever',
+					'flags' => SQLITE3_OPEN_READWRITE,
+				]);
+				$connection->connect();
+			}, ConnectionException::class);
+		} else {
+			Assert::exception(function () {
+				$connection = $this->createConnection(['database' => 'unknown']);
+				$connection->connect();
+			}, ConnectionException::class);
 
-		Assert::exception(function () {
-			$connection = $this->createConnection(['username' => 'unknown']);
-			$connection->connect();
-		}, ConnectionException::class);
+			Assert::exception(function () {
+				$connection = $this->createConnection(['username' => 'unknown']);
+				$connection->connect();
+			}, ConnectionException::class);
+		}
 	}
 
 

@@ -13,6 +13,7 @@ interface IPlatform
 {
 	const SUPPORT_MULTI_COLUMN_IN = 1;
 	const SUPPORT_QUERY_EXPLAIN = 2;
+	const SUPPORT_INSERT_DEFAULT_KEYWORD = 3;
 
 
 	/**
