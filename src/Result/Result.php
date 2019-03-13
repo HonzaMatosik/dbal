@@ -29,22 +29,22 @@ class Result implements \SeekableIterator, \Countable
 	/** @var IDriver */
 	private $driver;
 
-	/** @var string[] list of columns which should be casted to int */
+	/** @var array<string, null> list of columns which should be casted to int */
 	private $toIntColumns;
 
-	/** @var string[] list of columns which should be casted to float */
+	/** @var array<string, null> list of columns which should be casted to float */
 	private $toFloatColumns;
 
-	/** @var string[] list of columns which should be casted to string */
+	/** @var array<string, null> list of columns which should be casted to string */
 	private $toStringColumns;
 
-	/** @var string[] list of columns which should be casted to bool */
+	/** @var array<string, null> list of columns which should be casted to bool */
 	private $toBoolColumns;
 
-	/** @var string[] list of columns which should be casted to DateTime */
+	/** @var array<string, null> list of columns which should be casted to DateTime */
 	private $toDateTimeColumns;
 
-	/** @var array[] list of columns which should be casted using driver-specific logic */
+	/** @var array<string, mixed> list of columns which should be casted using driver-specific logic */
 	private $toDriverColumns;
 
 	/** @var DateTimeZone */
@@ -80,6 +80,45 @@ class Result implements \SeekableIterator, \Countable
 			$this->toBoolColumns = [];
 			$this->toDateTimeColumns = [];
 			$this->toDriverColumns = [];
+		}
+	}
+
+
+	/**
+	 * Sets column conversion type.
+	 * @param string     $column column name
+	 * @param int        $type the result type; a binary combination of IResultAdapter::TYPE_*
+	 * @param mixed|null $nativeType the original type for specic driver type conversion
+	 */
+	public function setValueNormalizationType(string $column, int $type, $nativeType = null)
+	{
+		unset(
+			$this->toStringColumns[$column],
+			$this->toIntColumns[$column],
+			$this->toFloatColumns[$column],
+			$this->toBoolColumns[$column],
+			$this->toDateTimeColumns[$column],
+			$this->toDriverColumns[$column]
+		);
+
+		if ($type & IResultAdapter::TYPE_STRING) {
+			$this->toStringColumns[$column] = null;
+
+		} elseif ($type & IResultAdapter::TYPE_INT) {
+			$this->toIntColumns[$column] = null;
+
+		} elseif ($type & IResultAdapter::TYPE_FLOAT) {
+			$this->toFloatColumns[$column] = null;
+
+		} elseif ($type & IResultAdapter::TYPE_BOOL) {
+			$this->toBoolColumns[$column] = null;
+
+		} elseif ($type & IResultAdapter::TYPE_DATETIME) {
+			$this->toDateTimeColumns[$column] = null;
+		}
+
+		if ($type & IResultAdapter::TYPE_DRIVER_SPECIFIC) {
+			$this->toDriverColumns[$column] = $nativeType;
 		}
 	}
 
@@ -142,7 +181,7 @@ class Result implements \SeekableIterator, \Countable
 	}
 
 
-	protected function initColumnConversions()
+	private function initColumnConversions()
 	{
 		$this->toIntColumns = [];
 		$this->toFloatColumns = [];
@@ -152,66 +191,65 @@ class Result implements \SeekableIterator, \Countable
 		$this->toDriverColumns = [];
 
 		$types = $this->adapter->getTypes();
-		foreach ($types as $key => $typePair) {
+		foreach ($types as $column => $typePair) {
 			list($type, $nativeType) = $typePair;
 
 			if ($type & IResultAdapter::TYPE_STRING) {
-				$this->toStringColumns[] = $key;
+				$this->toStringColumns[$column] = null;
 
 			} elseif ($type & IResultAdapter::TYPE_INT) {
-				$this->toIntColumns[] = $key;
+				$this->toIntColumns[$column] = null;
 
 			} elseif ($type & IResultAdapter::TYPE_FLOAT) {
-				$this->toFloatColumns[] = $key;
+				$this->toFloatColumns[$column] = null;
 
 			} elseif ($type & IResultAdapter::TYPE_BOOL) {
-				$this->toBoolColumns[] = $key;
+				$this->toBoolColumns[$column] = null;
 
 			} elseif ($type & IResultAdapter::TYPE_DATETIME) {
-				$this->toDateTimeColumns[] = $key;
+				$this->toDateTimeColumns[$column] = null;
 			}
 
 			if ($type & IResultAdapter::TYPE_DRIVER_SPECIFIC) {
-				$this->toDriverColumns[] = [$key, $nativeType];
+				$this->toDriverColumns[$column] = $nativeType;
 			}
 		}
 	}
 
 
-	protected function normalize(array $data): array
+	private function normalize(array $data): array
 	{
-		foreach ($this->toDriverColumns as $meta) {
-			list($column, $nativeType) = $meta;
+		foreach ($this->toDriverColumns as $column => $nativeType) {
 			if ($data[$column] !== null) {
 				$data[$column] = $this->driver->convertToPhp($data[$column], $nativeType);
 			}
 		}
 
-		foreach ($this->toIntColumns as $column) {
+		foreach ($this->toIntColumns as $column => $_) {
 			if ($data[$column] !== null) {
 				$data[$column] = (int) $data[$column];
 			}
 		}
 
-		foreach ($this->toFloatColumns as $column) {
+		foreach ($this->toFloatColumns as $column => $_) {
 			if ($data[$column] !== null) {
 				$data[$column] = (float) $data[$column];
 			}
 		}
 
-		foreach ($this->toBoolColumns as $column) {
+		foreach ($this->toBoolColumns as $column => $_) {
 			if ($data[$column] !== null) {
 				$data[$column] = (bool) $data[$column];
 			}
 		}
 
-		foreach ($this->toStringColumns as $column) {
+		foreach ($this->toStringColumns as $column => $_) {
 			if ($data[$column] !== null) {
 				$data[$column] = (string) $data[$column];
 			}
 		}
 
-		foreach ($this->toDateTimeColumns as $column) {
+		foreach ($this->toDateTimeColumns as $column => $_) {
 			if ($data[$column] !== null) {
 				$data[$column] = (new DateTimeImmutable($data[$column]))->setTimezone($this->applicationTimeZone);
 			}
